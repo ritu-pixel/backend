@@ -17,6 +17,8 @@ users = {}
 @app.route('/register', methods=['POST'])
 def register():
     req = request.get_json()
+    if not req:
+        return jsonify({"error": "Missing JSON body"}), 400
     username = req.get('username')
     password = req.get('password')
 
@@ -32,6 +34,8 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     req = request.get_json()
+    if not req:
+        return jsonify({"error": "Missing JSON body"}), 400
     username = req.get('username')
     password = req.get('password')
 
@@ -52,7 +56,6 @@ def test():
     current_user = get_jwt_identity()
     return jsonify({"msg": current_user}), 200
 
-# ✅ New route to upload and parse CSV file
 @app.route('/upload', methods=['POST'])
 @jwt_required()
 def upload_csv():
@@ -119,7 +122,7 @@ def synthesize_data():
     num_rows = configs.get('num_rows', 50)
     categorical_cols = configs.get('categorical_cols', None)
     if categorical_cols is not None and not isinstance(categorical_cols, list):
-        categorical_cols = None  # fallback if bad input
+        categorical_cols = None
     epochs = configs.get('epochs', 10)
 
     try:
@@ -179,5 +182,3 @@ def balance_data():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
