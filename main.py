@@ -1,24 +1,16 @@
 import pandas as pd
-
 from flask import Flask, jsonify, request
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from decouple import config
 from flask_cors import CORS
 import os
-# from flasgger import Swagger, swag_from
 import bcrypt
-import json
 
 app = Flask(__name__)
 CORS(app)
 
 app.config['JWT_SECRET_KEY'] = config('JWT_SECRET_KEY', default='secretkey123')
-# app.config['SWAGGER'] = {
-#     'title': 'SSStudio API',
-#     'uiversion': 3
-# }
 jwt = JWTManager(app)
-# swagger = Swagger(app)
 
 users = {}
 
@@ -48,7 +40,7 @@ def login():
         return jsonify({"error": "Invalid credentials"}), 401
 
     access_token = create_access_token(identity=username)
-    return jsonify({'token':access_token}), 200
+    return jsonify({'token': access_token}), 200
 
 @app.route('/ping', methods=['GET'])
 def ping():
@@ -60,6 +52,24 @@ def test():
     current_user = get_jwt_identity()
     return jsonify({"msg": current_user}), 200
 
+# ✅ New route to upload and parse CSV file
+@app.route('/upload', methods=['POST'])
+@jwt_required()
+def upload_csv():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    try:
+        df = pd.read_csv(file)
+        return jsonify({"data": df.to_dict(orient='records')}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to read CSV: {str(e)}"}), 500
+
 @app.route('/anonymize', methods=['POST'])
 @jwt_required()
 def anonymize_data():
@@ -67,11 +77,11 @@ def anonymize_data():
     if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
     configs = request_data['configs']
-    if not isinstance(configs, dict) and 'model' not in configs:
-        return jsonify({"error": "'configs' not formated correctly"}), 400
+    if not isinstance(configs, dict) or 'model' not in configs:
+        return jsonify({"error": "'configs' not formatted correctly"}), 400
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
-    anonymize_data = pd.DataFrame()
+
     try:
         if model.lower() == 'health':
             from models.healthcare_models import anonymize_health_data
@@ -95,11 +105,11 @@ def synthesize_data():
     if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
     configs = request_data['configs']
-    if not isinstance(configs, dict) and 'model' not in configs:
-        return jsonify({"error": "'configs' not formated correctly"}), 400
+    if not isinstance(configs, dict) or 'model' not in configs:
+        return jsonify({"error": "'configs' not formatted correctly"}), 400
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
-    synthesized_data = pd.DataFrame()
+
     try:
         if model.lower() == 'health':
             from models.healthcare_models import generate_health_data
@@ -111,11 +121,10 @@ def synthesize_data():
             from models.education_models import generate_education_data
             synthesized_data = generate_education_data(data, configs.get('num_rows', 50), configs.get('categorical_cols', None), configs.get('epochs', 10))
         else:
-            return jsonify({"error": "Unsupported model for Synthesis"}), 400
+            return jsonify({"error": "Unsupported model for synthesis"}), 400
     except Exception as e:
         return jsonify({"error": f"An error occurred during synthesis: {str(e)}"}), 500
     return jsonify({"synthesized_data": synthesized_data.to_json(orient='records')}), 200
-
 
 @app.route('/balance', methods=['POST'])
 @jwt_required()
@@ -124,12 +133,11 @@ def balance_data():
     if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
     configs = request_data['configs']
-    if not isinstance(configs, dict) and 'model' not in configs:
-        return jsonify({"error": "'configs' not formated correctly"}), 400
+    if not isinstance(configs, dict) or 'model' not in configs:
+        return jsonify({"error": "'configs' not formatted correctly"}), 400
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
-    
-    synthesized_data = pd.DataFrame()
+
     try:
         if model.lower() == 'health':
             from models.healthcare_models import balance_health_data
@@ -153,4 +161,5 @@ def balance_data():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
 
