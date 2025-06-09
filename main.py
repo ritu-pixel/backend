@@ -6,7 +6,7 @@ from flask_cors import CORS
 import os
 import bcrypt
 
-app = Flask(__name__)
+app = Flask(_name_)
 CORS(app)
 
 app.config['JWT_SECRET_KEY'] = config('JWT_SECRET_KEY', default='secretkey123')
@@ -17,8 +17,6 @@ users = {}
 @app.route('/register', methods=['POST'])
 def register():
     req = request.get_json()
-    if not req:
-        return jsonify({"error": "Missing JSON body"}), 400
     username = req.get('username')
     password = req.get('password')
 
@@ -34,8 +32,6 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     req = request.get_json()
-    if not req:
-        return jsonify({"error": "Missing JSON body"}), 400
     username = req.get('username')
     password = req.get('password')
 
@@ -56,6 +52,7 @@ def test():
     current_user = get_jwt_identity()
     return jsonify({"msg": current_user}), 200
 
+# ✅ New route to upload and parse CSV file
 @app.route('/upload', methods=['POST'])
 @jwt_required()
 def upload_csv():
@@ -77,13 +74,11 @@ def upload_csv():
 @jwt_required()
 def anonymize_data():
     request_data = request.get_json()
-    if not request_data or 'data' not in request_data or 'configs' not in request_data:
+    if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
-
     configs = request_data['configs']
     if not isinstance(configs, dict) or 'model' not in configs:
         return jsonify({"error": "'configs' not formatted correctly"}), 400
-
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
 
@@ -101,84 +96,68 @@ def anonymize_data():
             return jsonify({"error": "Unsupported model for anonymization"}), 400
     except Exception as e:
         return jsonify({"error": f"An error occurred during anonymization: {str(e)}"}), 500
-
-    return jsonify({"anonymized_data": anonymized_data.to_dict(orient='records')}), 200
-
+    return jsonify({"anonymized_data": anonymized_data.to_json(orient='records')}), 200
 
 @app.route('/synthesize', methods=['POST'])
 @jwt_required()
 def synthesize_data():
     request_data = request.get_json()
-    if not request_data or 'data' not in request_data or 'configs' not in request_data:
+    if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
-
     configs = request_data['configs']
     if not isinstance(configs, dict) or 'model' not in configs:
         return jsonify({"error": "'configs' not formatted correctly"}), 400
-
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
-
-    num_rows = configs.get('num_rows', 50)
-    categorical_cols = configs.get('categorical_cols', None)
-    if categorical_cols is not None and not isinstance(categorical_cols, list):
-        categorical_cols = None
-    epochs = configs.get('epochs', 10)
 
     try:
         if model.lower() == 'health':
             from models.healthcare_models import generate_health_data
-            synthesized_data = generate_health_data(data, num_rows, categorical_cols, epochs)
+            synthesized_data = generate_health_data(data, configs.get('num_rows', 50), configs.get('categorical_cols', None), configs.get('epochs', 10))
         elif model.lower() == 'finance':
             from models.finance_models import generate_finance_data
-            synthesized_data = generate_finance_data(data, num_rows, categorical_cols, epochs)
+            synthesized_data = generate_finance_data(data, configs.get('num_rows', 50), configs.get('categorical_cols', None), configs.get('epochs', 10))
         elif model.lower() == 'education':
             from models.education_models import generate_education_data
-            synthesized_data = generate_education_data(data, num_rows, categorical_cols, epochs)
+            synthesized_data = generate_education_data(data, configs.get('num_rows', 50), configs.get('categorical_cols', None), configs.get('epochs', 10))
         else:
             return jsonify({"error": "Unsupported model for synthesis"}), 400
     except Exception as e:
         return jsonify({"error": f"An error occurred during synthesis: {str(e)}"}), 500
-
-    return jsonify({"synthesized_data": synthesized_data.to_dict(orient='records')}), 200
-
+    return jsonify({"synthesized_data": synthesized_data.to_json(orient='records')}), 200
 
 @app.route('/balance', methods=['POST'])
 @jwt_required()
 def balance_data():
     request_data = request.get_json()
-    if not request_data or 'data' not in request_data or 'configs' not in request_data:
+    if 'data' not in request_data or 'configs' not in request_data:
         return jsonify({"error": "Missing 'data' or 'configs'"}), 400
-
     configs = request_data['configs']
     if not isinstance(configs, dict) or 'model' not in configs:
         return jsonify({"error": "'configs' not formatted correctly"}), 400
-
     model = configs.get('model')
     data = pd.DataFrame(request_data['data'])
 
     try:
         if model.lower() == 'health':
             from models.healthcare_models import balance_health_data
-            balanced_data = balance_health_data(data)
+            synthesized_data = balance_health_data(data)
         elif model.lower() == 'finance':
             if 'target_column' not in configs:
                 return jsonify({"error": "Missing 'target_column' in configs"}), 400
             from models.finance_models import balance_finance_data
-            balanced_data = balance_finance_data(data, configs['target_column'])
+            synthesized_data = balance_finance_data(data, configs['target_column'])
         elif model.lower() == 'education':
             if 'target_column' not in configs:
                 return jsonify({"error": "Missing 'target_column' in configs"}), 400
             from models.education_models import balance_education_data
-            balanced_data = balance_education_data(data, configs['target_column'])
+            synthesized_data = balance_education_data(data, configs['target_column'])
         else:
             return jsonify({"error": "Unsupported model for balancing"}), 400
     except Exception as e:
         return jsonify({"error": f"An error occurred during balancing: {str(e)}"}), 500
+    return jsonify({"synthesized_data": synthesized_data.to_json(orient='records')}), 200
 
-    return jsonify({"synthesized_data": balanced_data.to_dict(orient='records')}), 200
-
-
-if __name__ == "__main__":
+if _name_ == "_main_":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=True)
