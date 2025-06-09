@@ -6,7 +6,7 @@ from flask_cors import CORS
 import os
 import bcrypt
 
-app = Flask(_name_)
+app = Flask(__name__)
 CORS(app)
 
 app.config['JWT_SECRET_KEY'] = config('JWT_SECRET_KEY', default='secretkey123')
@@ -158,6 +158,6 @@ def balance_data():
         return jsonify({"error": f"An error occurred during balancing: {str(e)}"}), 500
     return jsonify({"synthesized_data": synthesized_data.to_json(orient='records')}), 200
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port,debug=True)
