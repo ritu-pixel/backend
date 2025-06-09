@@ -4,7 +4,7 @@ from flask import Flask, jsonify, request
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from decouple import config
 from flask_cors import CORS
-
+import os
 # from flasgger import Swagger, swag_from
 import bcrypt
 import json
@@ -150,5 +150,7 @@ def balance_data():
         return jsonify({"error": f"An error occurred during balancing: {str(e)}"}), 500
     return jsonify({"synthesized_data": synthesized_data.to_json(orient='records')}), 200
 
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
 
-app.run(debug=True)
