@@ -5,6 +5,9 @@ from decouple import config
 from flask_cors import CORS
 import os
 import bcrypt
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 app = Flask(__name__)
 CORS(app)
@@ -85,13 +88,13 @@ def anonymize_data():
     try:
         if model.lower() == 'health':
             from models.healthcare_models import anonymize_health_data
-            anonymized_data = anonymize_health_data(data)
+            anonymized_data = anonymize_health_data(data, nlp)
         elif model.lower() == 'finance':
             from models.finance_models import anonymize_finance_data
-            anonymized_data = anonymize_finance_data(data)
+            anonymized_data = anonymize_finance_data(data, nlp)
         elif model.lower() == 'education':
             from models.education_models import anonymize_education_data
-            anonymized_data = anonymize_education_data(data)
+            anonymized_data = anonymize_education_data(data, nlp)
         else:
             return jsonify({"error": "Unsupported model for anonymization"}), 400
     except Exception as e:
