@@ -4,7 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 from ctgan import CTGAN
 
 
-def anonymize_health_data(df: pd.DataFrame) -> pd.DataFrame:
+def anonymize_health_data(df: pd.DataFrame, nlp) -> pd.DataFrame:
     """
     Anonymizes the 'Patient_ID' column in a pandas DataFrame.
 
